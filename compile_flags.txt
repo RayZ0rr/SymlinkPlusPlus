@@ -1,0 +1,8 @@
+-std=c++17
+-Wall
+-Wextra
+-pedantic
+-Weffc++
+-Wsign-conversion
+-Iinclude
+-Llib
