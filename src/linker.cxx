@@ -93,7 +93,8 @@ bool CreateLink(const stdfs::path &src, const stdfs::path &dest,
 {
   switch (lOptions.type) {
   case LinkType::relative: {
-    const stdfs::path target{ stdfs::relative(src, dest.parent_path()) };
+    // const stdfs::path target{ stdfs::relative(src, dest.parent_path()) };
+    const stdfs::path target{ src.lexically_relative(dest.parent_path()) };
     stdfs::create_symlink(target, dest);
     break;
   }
@@ -141,7 +142,7 @@ LinkStatus_t LinkFile(const std::string &src_elmnt, const std::string &src,
   const auto file_dest = stdfs::path(dest).lexically_normal();
   if (debug) {
     std::cout << "\nCheckFileRecursive : " << file_src_elmnt;
-    std::cout << " from \"" << file_src << "\" against " << file_dest << '\n';
+    std::cout << " from " << file_src << " against " << file_dest << '\n';
   }
   const auto [result, target] =
     UC::CheckFileRecursive(file_src_elmnt, file_dest, debug);
@@ -177,7 +178,7 @@ LinkStatus_t LinkDirectory(const std::string &src, const std::string &dest,
   for (const stdfs::directory_entry &entry :
        stdfs::recursive_directory_iterator(src)) {
     const stdfs::path file_entry{ entry };
-    const stdfs::path file_entry_elmnt{ stdfs::relative(file_entry, file_src) };
+    const stdfs::path file_entry_elmnt{ file_entry.lexically_relative(file_src) };
     if (entry.is_directory()) {
       const auto [result, target] =
 	UC::CheckFileRecursive(file_entry_elmnt, file_dest, debug);

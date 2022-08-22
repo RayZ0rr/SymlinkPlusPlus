@@ -67,7 +67,21 @@ bool ContentsCheckFile(const stdfs::path &src, const stdfs::path &dest,
       << "Error (ContentsCheckFile): Failed.\n\n";
     return false;
   }
-
+  if (CompareFileNames(dest, src)) {
+    if (debug) {
+      std::cout << "\nIt exists. Same name\n";
+      std::cout << src << " & " << dest << '\n';
+    }
+    return true ;
+  } else if (dest.has_parent_path()) {
+    const stdfs::path file_parent{ dest.parent_path() };
+    if (debug) {
+      std::cout << "\nCan overwite.\n";
+      std::cout << dest << " to " << file_parent / src << '\n';
+    }
+    return false ;
+  }
+  return false ;
 }
 
 bool ContentsCheckDirectory(const stdfs::path &src, const stdfs::path &dest,
@@ -85,7 +99,11 @@ bool ContentsCheckDirectory(const stdfs::path &src, const stdfs::path &dest,
   stdfs::path file_match{};
   for (stdfs::path::iterator it = src_begin; it != src.end(); ++it) {
     const stdfs::path file_current{ dest/file_match } ;
-    found = false;
+    if (not stdfs::is_directory(file_current) || not stdfs::is_empty(file_current)) {
+      if(debug) std::cout << "Doesn't  exist.\n";
+      found = false;
+      break ;
+    }
     if (debug) std::cout << "\nChecking : in " << file_current << '\n' ;
     for (const stdfs::directory_entry &entry :
 	 stdfs::directory_iterator(file_current)) {
@@ -135,20 +153,11 @@ PathVerify_t CheckFileRecursive(const std::string &filename,
       return PathVerify_t(false, file_dest / file_src);
     }
   } else if (stdfs::exists(file_dest)) {
-    if (debug)
-      std::cout << "\nNot a directory.\n";
-    if (CompareFileNames(file_dest, file_src)) {
-      if (debug) {
-	std::cout << "\nIt exists. Same name\n";
-	std::cout << file_src << " & " << file_dest << '\n';
-      }
+    if (debug) std::cout << "\nNot a directory.\n";
+    if (ContentsCheckFile(file_src, file_dest,debug)) {
       return PathVerify_t(true, file_dest);
-    } else if (file_dest.has_parent_path()) {
+    } else {
       const stdfs::path file_parent{ file_dest.parent_path() };
-      if (debug) {
-	std::cout << "\nCan overwite.\n";
-	std::cout << file_dest << " to " << file_parent / file_src << '\n';
-      }
       return PathVerify_t(false, file_parent / file_src);
     }
   } else if (file_dest.has_parent_path() &&
