@@ -60,11 +60,10 @@ bool CheckDirectory(const std::string &target)
 }
 
 bool ContentsCheckFile(const stdfs::path &src, const stdfs::path &dest,
-			    bool debug)
+		       bool debug)
 {
-  if ( not CheckFile(src) ) {
-    std::cerr
-      << "Error (ContentsCheckFile): Failed.\n\n";
+  if (not CheckFile(src)) {
+    std::cerr << "Error (ContentsCheckFile): Failed.\n\n";
     return false;
   }
   if (CompareFileNames(dest, src)) {
@@ -72,39 +71,35 @@ bool ContentsCheckFile(const stdfs::path &src, const stdfs::path &dest,
       std::cout << "\nIt exists. Same name\n";
       std::cout << src << " & " << dest << '\n';
     }
-    return true ;
+    return true;
   } else if (dest.has_parent_path()) {
     const stdfs::path file_parent{ dest.parent_path() };
     if (debug) {
       std::cout << "\nCan overwite.\n";
       std::cout << dest << " to " << file_parent / src << '\n';
     }
-    return false ;
+    return false;
   }
-  return false ;
+  return false;
 }
 
 bool ContentsCheckDirectory(const stdfs::path &src, const stdfs::path &dest,
 			    bool debug)
 {
-  if ( not CheckDirectory(dest) ) {
-    std::cerr
-      << "Error (ContentsCheckDirectory): Failed.\n\n";
-    return false ;
+  if (not CheckDirectory(dest)) {
+    std::cerr << "Error (ContentsCheckDirectory): Failed.\n\n";
+    return false;
   }
   auto src_begin{ src.begin() };
   if (src.has_root_directory())
     ++src_begin;
-  bool found{ false };
+  bool result{ false };
   stdfs::path file_match{};
   for (stdfs::path::iterator it = src_begin; it != src.end(); ++it) {
-    const stdfs::path file_current{ dest/file_match } ;
-    if (not stdfs::is_directory(file_current) || not stdfs::is_empty(file_current)) {
-      if(debug) std::cout << "Doesn't  exist.\n";
-      found = false;
-      break ;
-    }
-    if (debug) std::cout << "\nChecking : in " << file_current << '\n' ;
+    const stdfs::path file_current{ dest / file_match };
+    bool found{ false };
+    if (debug)
+      std::cout << "\nChecking : in " << file_current << '\n';
     for (const stdfs::directory_entry &entry :
 	 stdfs::directory_iterator(file_current)) {
       const stdfs::path target{ entry.path().lexically_relative(file_current) };
@@ -116,6 +111,7 @@ bool ContentsCheckDirectory(const stdfs::path &src, const stdfs::path &dest,
 	if (debug) {
 	  std::cout << "It exists. Same name\n";
 	  std::cout << *it << " & " << target << '\n';
+	  std::cout << "Continuing to next level.\n";
 	}
 	file_match /= *it;
 	found = true;
@@ -123,14 +119,16 @@ bool ContentsCheckDirectory(const stdfs::path &src, const stdfs::path &dest,
       }
       found = false;
     }
-    if (not found) {
-      if(debug) std::cout << "Doesn't  exist.\n";
-      break;
-    }
-    if(debug) std::cout << "Continue to next level.\n";
+    result = found ;
   }
-  if(debug) std::cout << "End contents check.\n";
-  return found;
+  if (debug) std::cout << "Search ended.\n" ;
+  if (debug) {
+    if (result)
+      std::cout << "Found " << src << " inside " << dest << '\n';
+    else
+      std::cout << "Couldn't find " << src << " inside " << dest << '\n';
+  }
+  return result;
 }
 
 PathVerify_t CheckFileRecursive(const std::string &filename,
@@ -153,8 +151,9 @@ PathVerify_t CheckFileRecursive(const std::string &filename,
       return PathVerify_t(false, file_dest / file_src);
     }
   } else if (stdfs::exists(file_dest)) {
-    if (debug) std::cout << "\nNot a directory.\n";
-    if (ContentsCheckFile(file_src, file_dest,debug)) {
+    if (debug)
+      std::cout << "\nNot a directory.\n";
+    if (ContentsCheckFile(file_src, file_dest, debug)) {
       return PathVerify_t(true, file_dest);
     } else {
       const stdfs::path file_parent{ file_dest.parent_path() };

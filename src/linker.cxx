@@ -29,19 +29,30 @@ bool PrepareForDirectory(const stdfs::path &file_src, const stdfs::path &file_de
 {
   const stdfs::path file_parent{ file_dest.parent_path() };
   const stdfs::path file_existing{ ExistingPath(file_dest) };
-  if (stdfs::exists(file_dest) && not stdfs::is_directory(file_dest) ) {
+  if (stdfs::exists(file_dest) && stdfs::is_directory(file_dest) ) {
+    return true ;
+  } else if (stdfs::exists(file_dest) && not stdfs::is_directory(file_dest) ) {
     std::cerr << "\nError (PrepareTarget): invalid target specified.\n";
     std::cerr << file_src << " is an existing directory.\nBut ";
-    std::cerr << file_dest << " is an existing file.\n";
+    std::cerr << file_dest << " is not an existing directory.\n";
     return false;
   } else if ( not stdfs::is_directory(file_dest) && stdfs::is_directory(file_parent)) {
     std::cout << "\nCreating " << file_dest << '\n';
     stdfs::create_directory(file_dest);
     return true;
-  } else if ( stdfs::is_directory(file_existing) && parents && (file_existing != file_parent) ) {
-    std::cout << "\nCreating " << file_dest << '\n';
-    stdfs::create_directories(file_dest);
-    return true;
+  } else if ( stdfs::is_directory(file_existing) ) {
+    if ( parents || (file_existing == file_parent) ) {
+      std::cout << "\nCreating " << file_dest << '\n';
+      stdfs::create_directories(file_dest);
+      return true ;
+    } else {
+      std::cerr << "\nError (PrepareTarget): invalid target specified.\n";
+      std::cerr << file_src << " is an existing directory.\nBut ";
+      std::cerr << file_dest << " is not an existing directory.\n";
+      std::cerr << "\nEither use '-p/--parents' flag or\n" ;
+      std::cerr << "create it manually.\n";
+      return false ;
+    }
   } else {
     std::cerr << "\nError (PrepareTarget): invalid target specified.\n";
     std::cerr << file_src << " is an existing directory.\nBut ";
@@ -93,8 +104,10 @@ bool CreateLink(const stdfs::path &src, const stdfs::path &dest,
 {
   switch (lOptions.type) {
   case LinkType::relative: {
+    const stdfs::path abs_src{ stdfs::absolute(src) };
+    const stdfs::path abs_dest{ stdfs::absolute(dest) };
     // const stdfs::path target{ stdfs::relative(src, dest.parent_path()) };
-    const stdfs::path target{ src.lexically_relative(dest.parent_path()) };
+    const stdfs::path target{ abs_src.lexically_relative(abs_dest.parent_path()) };
     stdfs::create_symlink(target, dest);
     break;
   }
@@ -114,9 +127,11 @@ bool CreateLinkForce(const stdfs::path &src, const stdfs::path &dest,
   if (lOptions.force) {
     std::cout << "\nOverwriting and Linking : " << dest << " to " << src
 	      << '\n';
+    stdfs::remove(dest) ;
     return CreateLink(src, dest, lOptions);
   } else if (UC::CheckOverwrite(src, dest)) {
     std::cout << "Overwriting and Linking : " << dest << " to " << src << '\n';
+    stdfs::remove(dest) ;
     return CreateLink(src, dest, lOptions);
   } else {
     std::cout << "Skipping Linking : " << dest << " to " << src << '\n';
@@ -131,15 +146,15 @@ LinkStatus_t LinkFile(const std::string &src_elmnt, const std::string &src,
 {
   LinkStatus_t link_status{ 0, 0 };
   const auto file_src = stdfs::path(src).lexically_normal();
-  if ( not UC::CheckFile(src) ) {
+  if ( not UC::CheckFile(file_src) ) {
     std::cerr
       << "Error (LinkFile). Exiting.\n\n";
     return LinkStatus_t(-1, -1);
   }
-  if (not PrepareTarget(src, dest, lOptions.parents))
+  const auto file_dest = stdfs::path(dest).lexically_normal();
+  if (not PrepareTarget(file_src, file_dest, lOptions.parents))
     return LinkStatus_t(-1, -1);
   const auto file_src_elmnt = stdfs::path(src_elmnt).lexically_normal();
-  const auto file_dest = stdfs::path(dest).lexically_normal();
   if (debug) {
     std::cout << "\nCheckFileRecursive : " << file_src_elmnt;
     std::cout << " from " << file_src << " against " << file_dest << '\n';
@@ -167,16 +182,16 @@ LinkStatus_t LinkDirectory(const std::string &src, const std::string &dest,
 {
   LinkStatus_t link_status{ 0, 0 };
   const auto file_src = stdfs::path(src).lexically_normal();
-  if ( not UC::CheckDirectory(src) ) {
+  if ( not UC::CheckDirectory(file_src) ) {
     std::cerr
       << "Error (LinkDirectory). Exiting.\n\n";
     return LinkStatus_t(-1, -1);
   }
-  if (not PrepareTarget(src, dest, lOptions.parents))
-    return LinkStatus_t(-1, -1);
   const auto file_dest = stdfs::path(dest).lexically_normal();
+  if (not PrepareTarget(file_src, file_dest, lOptions.parents))
+    return LinkStatus_t(-1, -1);
   for (const stdfs::directory_entry &entry :
-       stdfs::recursive_directory_iterator(src)) {
+       stdfs::recursive_directory_iterator(file_src)) {
     const stdfs::path file_entry{ entry };
     const stdfs::path file_entry_elmnt{ file_entry.lexically_relative(file_src) };
     if (entry.is_directory()) {
@@ -189,6 +204,9 @@ LinkStatus_t LinkDirectory(const std::string &src, const std::string &dest,
       }
     } else {
       if (debug) {
+	std::cout << "\nfile_src : " << file_src;
+	std::cout << "\nfile_entry : " << file_entry;
+	std::cout << "\nfile_entry_elmnt : " << file_entry_elmnt;
 	std::cout << "\nCheckFileRecursive : " << file_entry_elmnt;
 	std::cout << " from \"" << file_entry << "\" inside " << file_dest
 		  << '\n';
@@ -198,8 +216,8 @@ LinkStatus_t LinkDirectory(const std::string &src, const std::string &dest,
       if (result) {
 	CreateLinkForce(file_entry, target, lOptions) ? ++link_status.first : ++link_status.second ;
       } else if (not(result || target.empty())) {
-	if (file_entry_elmnt.has_parent_path() && not stdfs::is_directory(file_entry_elmnt.parent_path()) ) {
-	  stdfs::path target_parent{ file_entry_elmnt.parent_path() } ;
+	if (stdfs::path(target).has_parent_path() && not stdfs::is_directory(stdfs::path(target).parent_path()) ) {
+	  stdfs::path target_parent{ stdfs::path(target).parent_path() } ;
 	  if (debug)
 	    std::cout << "\nCreating " << target_parent << '\n';
 	  stdfs::create_directories(target_parent);

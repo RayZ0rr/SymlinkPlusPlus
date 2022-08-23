@@ -74,8 +74,12 @@ int main(int argc, char *argv[])
   }
 
   std::cout << "\n\nSymlink++ finished.\n";
-  std::cout << "\nTotal linked : " << link_status.first;
-  std::cout << "\nNot linked : " << link_status.second;
+  if ( link_status.first == -1 ) {
+    std::cout << "\nLinking failed\n" ;
+  } else {
+    std::cout << "\nTotal linked : " << link_status.first;
+    std::cout << "\nNot linked : " << link_status.second;
+  }
   std::cout << "\n\n";
 
   return 0;
