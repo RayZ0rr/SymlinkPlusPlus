@@ -63,8 +63,15 @@ void UseArgs(CLI::App &apps, arguments &args)
   dry_flag->multi_option_policy(CLI::MultiOptionPolicy::TakeFirst);
   args.m_flags.push_back(dry_flag);
 
+  CLI::Option *skip_flag = apps.add_flag(
+    "-S,--skip-existing", "skip existing without asking for overwrite");
+  skip_flag->needs(opt_src);
+  skip_flag->default_val(false);
+  skip_flag->option_text(" ");
+  args.m_flags.push_back(skip_flag);
+
   CLI::Option *force_flag = apps.add_flag(
-    "-f,--force", args.m_out, "force overwrite without confirmation");
+    "-f,--force", "force overwrite without confirmation");
   force_flag->needs(opt_src);
   force_flag->default_val(false);
   force_flag->option_text(" ");

@@ -41,6 +41,7 @@ int main(int argc, char *argv[])
 
   CLI11_PARSE(main_app, argc, argv);
 
+  bool skip{ main_app.get_option("-S")->as<bool>() };
   bool force{ false };
   force = main_app.get_option("--force")->as<bool>();
   bool parents{ main_app.get_option("-p")->as<bool>() };
@@ -59,7 +60,7 @@ int main(int argc, char *argv[])
   if (dry_run)
     link_type = UL::LinkType::echo;
 
-  UL::LinkOpts linker_options{ force, parents, link_type };
+  UL::LinkOpts linker_options{ skip, force, parents, link_type };
 
   UL::LinkStatus_t link_status;
   if (stdfs::is_directory(args_struct.m_src)) {

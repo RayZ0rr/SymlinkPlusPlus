@@ -2,11 +2,16 @@
 
 #include <string>
 #include <utility>
+#include <filesystem>
+
+namespace stdfs = std::filesystem;
 
 namespace Utilities::Checkers
 {
 
 using PathVerify_t = std::pair<bool, std::string>;
+
+stdfs::path GetCleanPath(const std::string &src) ;
 
 bool CompareFileNames(const std::string &src, const std::string &dest);
 

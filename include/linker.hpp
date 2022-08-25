@@ -17,6 +17,7 @@ enum class LinkType
 struct LinkOpts
 {
   bool force{ false };
+  bool skip{ false };
   bool parents{ false };
   LinkType type{ LinkType::relative };
 };

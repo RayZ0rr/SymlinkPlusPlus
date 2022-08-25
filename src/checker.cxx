@@ -8,18 +8,26 @@ namespace stdfs = std::filesystem;
 namespace Utilities::Checkers
 {
 
-bool CompareFileNames(const std::string &src, const std::string &dest)
+stdfs::path GetCleanPath(const std::string &src)
 {
-  const stdfs::path file_src{ src };
-  const stdfs::path file_dest{ dest };
-  return (file_src.filename() == file_dest.filename());
+  const stdfs::path tmp_src{ src };
+  const stdfs::path lexical_src{ tmp_src.lexically_normal() };
+  const stdfs::path abs_src{ stdfs::absolute(lexical_src) };
+  return stdfs::weakly_canonical(abs_src);
 }
 
 bool CompareFiles(const std::string &src, const std::string &dest)
 {
-  const stdfs::path file_src{ src };
-  const stdfs::path file_dest{ dest };
+  const stdfs::path file_src{ GetCleanPath(src) };
+  const stdfs::path file_dest{ GetCleanPath(dest) };
   return (stdfs::equivalent(file_src, file_dest));
+}
+
+bool CompareFileNames(const std::string &src, const std::string &dest)
+{
+  const stdfs::path file_src{ GetCleanPath(src) };
+  const stdfs::path file_dest{ GetCleanPath(dest) };
+  return (file_src.filename() == file_dest.filename());
 }
 
 bool CheckOverwrite(const std::string &src, const std::string &dest)
@@ -38,7 +46,7 @@ bool CheckOverwrite(const std::string &src, const std::string &dest)
 
 bool CheckFile(const std::string &target)
 {
-  const auto file_target = stdfs::path(target).lexically_normal();
+  const auto file_target{ GetCleanPath(target) };
   if (stdfs::is_directory(file_target) || not stdfs::exists(file_target)) {
     std::cerr << "\nError (CheckFile): requires source as exisiting file.\n";
     std::cerr << file_target << " is not a file.\n";
@@ -49,10 +57,10 @@ bool CheckFile(const std::string &target)
 
 bool CheckDirectory(const std::string &target)
 {
-  const auto file_target = stdfs::path(target).lexically_normal();
+  const auto file_target{ GetCleanPath(target) };
   if (not stdfs::is_directory(file_target)) {
     std::cerr
-      << "\nError (CheckDirectory: requires source as exisiting directory.\n";
+      << "\nError (CheckDirectory): requires source as exisiting directory.\n";
     std::cerr << file_target << " is not a directory.\n";
     return false;
   }
@@ -62,21 +70,23 @@ bool CheckDirectory(const std::string &target)
 bool ContentsCheckFile(const stdfs::path &src, const stdfs::path &dest,
 		       bool debug)
 {
-  if (not CheckFile(src)) {
+  const stdfs::path file_src{ GetCleanPath(src) };
+  const stdfs::path file_dest{ GetCleanPath(dest) };
+  if (not CheckFile(file_src)) {
     std::cerr << "Error (ContentsCheckFile): Failed.\n\n";
     return false;
   }
-  if (CompareFileNames(dest, src)) {
+  if (CompareFileNames(file_dest, file_src)) {
     if (debug) {
       std::cout << "\nIt exists. Same name\n";
-      std::cout << src << " & " << dest << '\n';
+      std::cout << file_src << " & " << file_dest << '\n';
     }
     return true;
-  } else if (dest.has_parent_path()) {
-    const stdfs::path file_parent{ dest.parent_path() };
+  } else if (file_dest.has_parent_path()) {
+    const stdfs::path file_parent{ file_dest.parent_path() };
     if (debug) {
-      std::cout << "\nCan overwite.\n";
-      std::cout << dest << " to " << file_parent / src << '\n';
+      std::cout << "\nCan overwite or create new.\n";
+      std::cout << file_dest << " or " << file_parent/file_src << '\n';
     }
     return false;
   }
@@ -86,17 +96,22 @@ bool ContentsCheckFile(const stdfs::path &src, const stdfs::path &dest,
 bool ContentsCheckDirectory(const stdfs::path &src, const stdfs::path &dest,
 			    bool debug)
 {
-  if (not CheckDirectory(dest)) {
+  const stdfs::path file_src{ src.lexically_normal() };
+  const stdfs::path file_dest{ GetCleanPath(dest) };
+  if (not CheckDirectory(file_dest)) {
     std::cerr << "Error (ContentsCheckDirectory): Failed.\n\n";
     return false;
   }
-  auto src_begin{ src.begin() };
-  if (src.has_root_directory())
+  auto src_begin{ file_src.begin() };
+  if (file_src.has_root_directory()) {
     ++src_begin;
+    if (file_src.has_root_name())
+      ++src_begin;
+  }
   bool result{ false };
   stdfs::path file_match{};
-  for (stdfs::path::iterator it = src_begin; it != src.end(); ++it) {
-    const stdfs::path file_current{ dest / file_match };
+  for (stdfs::path::iterator it = src_begin; it != file_src.end(); ++it) {
+    const stdfs::path file_current{ file_dest/file_match };
     bool found{ false };
     if (debug)
       std::cout << "\nChecking : in " << file_current << '\n';
@@ -119,9 +134,10 @@ bool ContentsCheckDirectory(const stdfs::path &src, const stdfs::path &dest,
       }
       found = false;
     }
-    result = found ;
+    result = found;
   }
-  if (debug) std::cout << "Search ended.\n" ;
+  if (debug)
+    std::cout << "Search ended.\n";
   if (debug) {
     if (result)
       std::cout << "Found " << src << " inside " << dest << '\n';
@@ -134,8 +150,8 @@ bool ContentsCheckDirectory(const stdfs::path &src, const stdfs::path &dest,
 PathVerify_t CheckFileRecursive(const std::string &filename,
 				const std::string &filepath, bool debug)
 {
-  const auto file_src = stdfs::path(filename).lexically_normal();
-  const auto file_dest = stdfs::path(filepath).lexically_normal();
+  const stdfs::path file_src{ filename };
+  const stdfs::path file_dest{ GetCleanPath(filepath) };
   if (stdfs::is_directory(file_dest)) {
     if (ContentsCheckDirectory(file_src, file_dest, debug)) {
       if (debug) {
@@ -155,9 +171,6 @@ PathVerify_t CheckFileRecursive(const std::string &filename,
       std::cout << "\nNot a directory.\n";
     if (ContentsCheckFile(file_src, file_dest, debug)) {
       return PathVerify_t(true, file_dest);
-    } else {
-      const stdfs::path file_parent{ file_dest.parent_path() };
-      return PathVerify_t(false, file_parent / file_src);
     }
   } else if (file_dest.has_parent_path() &&
 	     stdfs::is_directory(file_dest.parent_path())) {

@@ -17,8 +17,6 @@ namespace Utilities::Arguments
 
 struct arguments
 {
-  bool m_out{ false };
-  int *m_count{ nullptr };
   std::string m_src;
   std::string m_dest;
   CLIOptionV m_options;
