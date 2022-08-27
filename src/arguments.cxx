@@ -33,7 +33,7 @@ void UseArgs(CLI::App &apps, arguments &args)
   // apps.name(args.m_name);
   // add version output
   apps.set_version_flag(
-    "-V,--version", "Symlink++ Version 0.2.1 (Manage symlinks like a pro).\n");
+    "-V,--version", "Symlink++ Version 1.0.0 (Manage symlinks like a pro).\n");
   apps.positionals_at_end();
   // apps.allow_extras(); // Do not throw an error if extra arguments are left over.
 
