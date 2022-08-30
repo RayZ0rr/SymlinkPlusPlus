@@ -9,6 +9,7 @@
 
 namespace stdfs = std::filesystem;
 
+namespace UC = Utilities::Checkers;
 namespace UL = Utilities::Linkers;
 namespace UA = Utilities::Arguments;
 
@@ -54,11 +55,17 @@ int main(int argc, char *argv[])
     args_struct.m_flags[0]->results(dry_run);
   bool absolute{ main_app.get_option("-A")->as<bool>() };
 
+  bool final_clean{ false } ;
+  stdfs::path final_clean_path ;
   UL::LinkType link_type{ UL::LinkType::relative };
   if (absolute)
     link_type = UL::LinkType::absolute;
-  if (dry_run)
+  if ( dry_run ) {
     link_type = UL::LinkType::echo;
+    final_clean_path = UC::GetCleanPath(args_struct.m_dest) ;
+    if ( not stdfs::exists(final_clean_path) ) final_clean = true ;
+  }
+
 
   UL::LinkOpts linker_options{ skip, force, parents, link_type };
 
@@ -73,6 +80,8 @@ int main(int argc, char *argv[])
 			       args_struct.m_dest, linker_options,
 			       include_debug);
   }
+
+  if (final_clean && stdfs::exists(final_clean_path) ) stdfs::remove_all(final_clean_path) ;
 
   std::cout << "\n\nSymlink++ finished.\n";
   if ( link_status.first == -1 ) {
