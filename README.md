@@ -3,7 +3,7 @@
 </h1>
 <p align="center"><i>Manage symlinks like a pro</i>.</p>
 
-`symlink++`is a tool to help you create symlinks for files and/or folders from a `source` to a `target`. If there are conflicting files with the same name it will ask for user confirmation before proceeding. It also comes with multiple flags to help manipulate the linking features such as :
+`symlink++`is a tool to help you create symlinks for files and/or folders from a `source` to a `target`. It can recursively symlink and replicate directory structure or simply symlink a single file. If there are conflicting files with the same name it will ask for user confirmation before proceeding. It also comes with multiple flags to help manipulate the linking features such as :
 - *absolute* or *relative* linking ( *relative* linking is done by default )
 - *create missing folders*
 - *Overwrite/Skip* exisitng files.
@@ -38,3 +38,6 @@ The following flags are available :
 - `-S,--skip-existing` :- Don't ask for **Overwrite** confirmation on exisiting files and skip them directly.
 - `-f,--force` :- force overwrite without asking for confirmation.
 - `-D,--debug` :-Print more information in the output ( usually for debugging purposes ).
+
+# Credits
+- [CLI11](https://github.com/CLIUtils/CLI11) for adavanced but simple to use argument parser.
