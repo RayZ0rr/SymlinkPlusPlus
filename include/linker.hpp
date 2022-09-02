@@ -28,7 +28,7 @@ bool DryLink(const std::string &src, const std::string &dest,
 	     const LinkOpts &lOptions, bool debug = false);
 bool DryRelativeLink(const std::string &src, const std::string &dest,
 		     const LinkOpts &lOptions, bool debug = false);
-LinkStatus_t LinkFile(const std::string &src_elmnt, const std::string &src,
+LinkStatus_t LinkFile(const std::string &src,
 		      const std::string &dest, const LinkOpts &lOptions,
 		      bool debug = false);
 LinkStatus_t LinkDirectory(const std::string &src, const std::string &dest,

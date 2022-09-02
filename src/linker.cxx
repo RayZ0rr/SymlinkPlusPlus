@@ -124,11 +124,6 @@ bool CreateLink(const stdfs::path &src, const stdfs::path &dest,
 {
   const stdfs::path file_src{ UC::GetCleanPath(src) };
   const stdfs::path file_dest{ UC::GetCleanPath(dest) };
-  if (lOptions.skip) {
-    std::cout << "Skipping Linking : " << file_dest << " to " << file_src
-	      << '\n';
-    return false;
-  }
   switch (lOptions.type) {
   case LinkType::relative: {
     // const stdfs::path abs_src{ stdfs::absolute(src) };
@@ -155,7 +150,7 @@ bool CreateLinkForce(const stdfs::path &src, const stdfs::path &dest,
   if (lOptions.skip) {
     const stdfs::path file_src{ UC::GetCleanPath(src) };
     const stdfs::path file_dest{ UC::GetCleanPath(dest) };
-    std::cout << "Skipping Linking : " << file_dest << " to " << file_src
+    std::cout << "\nSkipping Linking : " << file_dest << " to " << file_src
 	      << '\n';
     return false;
   }
@@ -175,7 +170,7 @@ bool CreateLinkForce(const stdfs::path &src, const stdfs::path &dest,
   return false;
 }
 
-LinkStatus_t LinkFile(const std::string &src_elmnt, const std::string &src,
+LinkStatus_t LinkFile(const std::string &src,
 		      const std::string &dest, const LinkOpts &lOptions,
 		      bool debug)
 {
@@ -189,7 +184,7 @@ LinkStatus_t LinkFile(const std::string &src_elmnt, const std::string &src,
   const stdfs::path file_dest{ UC::GetCleanPath(dest) };
   if (not PrepareTarget(file_src, file_dest, lOptions.parents))
     return LinkStatus_t(-1, -1);
-  const auto file_src_elmnt = stdfs::path(src_elmnt).lexically_normal();
+  const stdfs::path file_src_elmnt{ file_src.filename() };
   if (debug) {
     std::cout << "\nCheckFileRecursive : " << file_src_elmnt;
     std::cout << " from " << file_src << " against " << file_dest << '\n';

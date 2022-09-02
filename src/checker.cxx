@@ -172,6 +172,7 @@ PathVerify_t CheckFileRecursive(const std::string &filename,
     if (ContentsCheckFile(file_src, file_dest, debug)) {
       return PathVerify_t(true, file_dest);
     }
+    return PathVerify_t(false, file_dest);
   } else if (file_dest.has_parent_path() &&
 	     stdfs::is_directory(file_dest.parent_path())) {
     const stdfs::path file_parent{ file_dest.parent_path() };
