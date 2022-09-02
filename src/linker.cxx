@@ -33,16 +33,16 @@ bool PrepareForDirectory(const stdfs::path &file_src,
 {
   const stdfs::path tmp_dest{ UC::GetCleanPath(file_dest) };
   const stdfs::path file_parent{ tmp_dest.parent_path() };
-  const stdfs::path file_existing{ ExistingPath(file_dest) };
-  if (stdfs::exists(file_dest) && stdfs::is_directory(file_dest)) {
+  const stdfs::path file_existing{ ExistingPath(tmp_dest) };
+  const stdfs::file_status status_dest{ stdfs::status(file_dest) } ;
+  if (stdfs::exists(status_dest) && stdfs::is_directory(status_dest)) {
     return true;
-  } else if (stdfs::exists(file_dest) && not stdfs::is_directory(file_dest)) {
+  } else if (stdfs::exists(status_dest) && not stdfs::is_directory(status_dest)) {
     std::cerr << "\nError (PrepareTarget): invalid target specified.\n";
     std::cerr << file_src << " is an existing directory.\nBut ";
     std::cerr << file_dest << " is not an existing directory.\n";
     return false;
-  } else if (not stdfs::is_directory(file_dest) &&
-	     stdfs::is_directory(file_parent)) {
+  } else if (stdfs::is_directory(file_parent)) {
     std::cout << "\nCreating " << file_dest << '\n';
     stdfs::create_directory(file_dest);
     return true;
@@ -74,8 +74,9 @@ bool PrepareForFile(const stdfs::path &file_src, const stdfs::path &file_dest,
 {
   const stdfs::path tmp_dest{ UC::GetCleanPath(file_dest) };
   const stdfs::path file_parent{ tmp_dest.parent_path() };
-  const stdfs::path file_existing{ ExistingPath(file_dest) };
-  if (stdfs::is_directory(file_dest) || stdfs::exists(file_dest) ||
+  const stdfs::file_status status_dest{ stdfs::status(file_dest) } ;
+  const stdfs::path file_existing{ ExistingPath(tmp_dest) };
+  if (stdfs::is_directory(status_dest) || stdfs::exists(status_dest) ||
       stdfs::is_directory(file_parent)) {
     return true;
   } else if (stdfs::is_directory(file_existing) && parents &&
@@ -110,10 +111,11 @@ bool PrepareTarget(const std::string &src, const std::string &dest,
 		   bool parents)
 {
   const stdfs::path file_src{ UC::GetCleanPath(src) };
+  const stdfs::file_status status_src{ stdfs::status(file_src) } ;
   const stdfs::path file_dest{ UC::GetCleanPath(dest) };
-  if (stdfs::is_directory(file_src)) {
+  if (stdfs::is_directory(status_src)) {
     return PrepareForDirectory(file_src, file_dest, parents);
-  } else if (stdfs::exists(file_src)) {
+  } else if (stdfs::exists(status_src)) {
     return PrepareForFile(file_src, file_dest, parents);
   }
   return false;
@@ -182,6 +184,7 @@ LinkStatus_t LinkFile(const std::string &src,
     return LinkStatus_t(-1, -1);
   }
   const stdfs::path file_dest{ UC::GetCleanPath(dest) };
+  const stdfs::file_status status_dest{ stdfs::status(file_dest) } ;
   if (not PrepareTarget(file_src, file_dest, lOptions.parents))
     return LinkStatus_t(-1, -1);
   const stdfs::path file_src_elmnt{ file_src.filename() };
@@ -194,11 +197,11 @@ LinkStatus_t LinkFile(const std::string &src,
   if (result) {
     CreateLinkForce(file_src, target, lOptions) ? ++link_status.first :
 						  ++link_status.second;
-  } else if ((not result) && stdfs::is_directory(file_dest)) {
+  } else if ((not result) && stdfs::is_directory(status_dest)) {
     std::cout << "\nLinking : " << target << " to " << file_src;
     CreateLink(file_src, target, lOptions) ? ++link_status.first :
 					     ++link_status.second;
-  } else if (stdfs::exists(file_dest)) {
+  } else if (stdfs::exists(status_dest)) {
     CreateLinkForce(file_src, file_dest, lOptions) ? ++link_status.first :
 						     ++link_status.second;
   } else if (file_dest.has_parent_path()) {

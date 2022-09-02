@@ -46,10 +46,11 @@ bool CheckOverwrite(const std::string &src, const std::string &dest)
 
 bool CheckFile(const std::string &target)
 {
-  const auto file_target{ GetCleanPath(target) };
-  if (stdfs::is_directory(file_target) || not stdfs::exists(file_target)) {
+  // const auto file_target{ GetCleanPath(target) };
+  const auto status_target{ stdfs::status(GetCleanPath(target)) } ;
+  if (stdfs::is_directory(status_target) || not stdfs::exists(status_target)) {
     std::cerr << "\nError (CheckFile): requires source as exisiting file.\n";
-    std::cerr << file_target << " is not a file.\n";
+    std::cerr << target << " is not a file.\n";
     return false;
   }
   return true;
@@ -57,11 +58,12 @@ bool CheckFile(const std::string &target)
 
 bool CheckDirectory(const std::string &target)
 {
-  const auto file_target{ GetCleanPath(target) };
-  if (not stdfs::is_directory(file_target)) {
+  // const auto file_target{ GetCleanPath(target) };
+  const auto status_target{ stdfs::status(GetCleanPath(target)) } ;
+  if (not stdfs::is_directory(status_target)) {
     std::cerr
       << "\nError (CheckDirectory): requires source as exisiting directory.\n";
-    std::cerr << file_target << " is not a directory.\n";
+    std::cerr << target << " is not a directory.\n";
     return false;
   }
   return true;
@@ -152,7 +154,8 @@ PathVerify_t CheckFileRecursive(const std::string &filename,
 {
   const stdfs::path file_src{ filename };
   const stdfs::path file_dest{ GetCleanPath(filepath) };
-  if (stdfs::is_directory(file_dest)) {
+  const stdfs::file_status status_dest{ stdfs::status(file_dest) } ;
+  if (stdfs::is_directory(status_dest)) {
     if (ContentsCheckDirectory(file_src, file_dest, debug)) {
       if (debug) {
 	std::cout << "\nFound inside directory.\n";
@@ -166,7 +169,7 @@ PathVerify_t CheckFileRecursive(const std::string &filename,
       }
       return PathVerify_t(false, file_dest / file_src);
     }
-  } else if (stdfs::exists(file_dest)) {
+  } else if (stdfs::exists(status_dest)) {
     if (debug)
       std::cout << "\nNot a directory.\n";
     if (ContentsCheckFile(file_src, file_dest, debug)) {

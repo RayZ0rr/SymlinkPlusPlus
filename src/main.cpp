@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
 			       include_debug);
   }
 
-  if (final_clean && stdfs::exists(final_clean_path) ) stdfs::remove_all(final_clean_path) ;
+  if (final_clean && stdfs::exists(final_clean_path) && link_status.first <= 0) stdfs::remove_all(final_clean_path) ;
 
   std::cout << "\n\nSymlink++ finished.\n";
   if ( link_status.first == -1 ) {
